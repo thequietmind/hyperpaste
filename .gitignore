@@ -1,0 +1,22 @@
+# .gitignore
+
+CLAUDE.md
+AGENTS.md
+/docs/
+
+**/.claude/settings.local.json
+
+.DS_Store
+.DS_Store?
+**/.DS_Store
+.AppleDouble
+.LSOverride
+*~
+._*
+.Spotlight-V100
+.Trashes
+__MACOSX
+Thumbs.db
+ehthumbs.db
+.dccache
+
