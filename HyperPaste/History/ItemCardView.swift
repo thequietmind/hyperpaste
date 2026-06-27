@@ -3,10 +3,12 @@ import AppKit
 
 struct ItemCardView: View {
     let item: ClipboardItem
+    let attachmentStore: AttachmentStore
     let isSelected: Bool
     let onRequestDelete: () -> Void
     let onRequestTogglePin: () -> Void
 
+    @State private var thumbnail: NSImage?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
 
@@ -19,7 +21,7 @@ struct ItemCardView: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 14) {
-            badge
+            leadingVisual
 
             VStack(alignment: .leading, spacing: 4) {
                 title
@@ -44,6 +46,9 @@ struct ItemCardView: View {
         }
         .contentShape(Capsule(style: .continuous))
         .animation(reduceMotion ? nil : .smooth(duration: 0.22), value: isSelected)
+        .task(id: item.id) {
+            thumbnail = await loadThumbnail()
+        }
         .contextMenu {
             Button(pinMenuTitle) {
                 onRequestTogglePin()
@@ -74,18 +79,13 @@ struct ItemCardView: View {
     // MARK: - Badge
 
     @ViewBuilder
-    private var badge: some View {
+    private var leadingVisual: some View {
         if item.kind == .color, let parsedColor {
             colorBadge(for: parsedColor)
+        } else if let thumbnail {
+            thumbnailBadge(thumbnail)
         } else {
-            ZStack {
-                Circle()
-                    .fill(Color(nsColor: .quaternaryLabelColor).opacity(0.55))
-                Image(systemName: item.kind.symbolName)
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(.secondary)
-            }
-            .frame(width: 40, height: 40)
+            glyphBadge
         }
     }
 
@@ -100,6 +100,63 @@ struct ItemCardView: View {
         .frame(width: 40, height: 40)
         .clipShape(Circle())
         .accessibilityHidden(true)
+    }
+
+    private func thumbnailBadge(_ image: NSImage) -> some View {
+        Image(nsImage: image)
+            .resizable()
+            .scaledToFill()
+            .frame(width: 40, height: 40)
+            .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+            .accessibilityHidden(true)
+    }
+
+    private var glyphBadge: some View {
+        ZStack {
+            Circle()
+                .fill(Color(nsColor: .quaternaryLabelColor).opacity(0.55))
+            Image(systemName: item.kind.symbolName)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(.secondary)
+        }
+        .frame(width: 40, height: 40)
+    }
+
+    private func loadThumbnail() async -> NSImage? {
+        switch item.kind {
+        case .image:
+            return ThumbnailCache.shared.thumbnail(for: item, attachmentStore: attachmentStore)
+        case .files:
+            return await loadFileThumbnail()
+        case .text, .link, .code, .color:
+            return nil
+        }
+    }
+
+    private func loadFileThumbnail() async -> NSImage? {
+        guard let bookmarks = item.fileBookmarks else { return nil }
+        if let cached = ThumbnailCache.shared.fileThumbnail(forID: item.id) {
+            return cached
+        }
+
+        for bookmark in bookmarks {
+            guard let url = resolveFileURL(bookmark: bookmark),
+                  let image = await FileThumbnailLoader.generate(url: url, side: 40)
+            else { continue }
+            ThumbnailCache.shared.setFileThumbnail(image, forID: item.id)
+            return image
+        }
+        return nil
+    }
+
+    private func resolveFileURL(bookmark: Data) -> URL? {
+        var isStale = false
+        return try? URL(
+            resolvingBookmarkData: bookmark,
+            options: [.withSecurityScope],
+            relativeTo: nil,
+            bookmarkDataIsStale: &isStale
+        )
     }
 
     private func swiftUIColor(_ color: ParsedColor) -> Color {

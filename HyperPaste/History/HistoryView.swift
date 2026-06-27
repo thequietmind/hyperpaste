@@ -212,6 +212,7 @@ struct HistoryView: View {
                         ForEach(Array(filteredItems.enumerated()), id: \.element.id) { index, item in
                             ItemCardView(
                                 item: item,
+                                attachmentStore: attachmentStore,
                                 isSelected: isSelected(item, at: index),
                                 onRequestDelete: { onRequestDeleteItem(item) },
                                 onRequestTogglePin: { onRequestTogglePin(item) }
