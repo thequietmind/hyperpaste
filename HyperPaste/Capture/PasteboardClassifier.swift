@@ -45,6 +45,8 @@ struct PasteboardClassifier {
         let kind: ItemKind
         if detectedKinds.contains("links") {
             kind = .link
+        } else if ColorParser.parse(normalized) != nil {
+            kind = .color
         } else if CodeHeuristic.looksLikeCode(raw) {
             kind = .code
         } else {

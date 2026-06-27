@@ -37,7 +37,7 @@ enum HistoryFilter: Hashable, CaseIterable, Sendable {
     func matches(_ item: ClipboardItem) -> Bool {
         switch self {
         case .all: return true
-        case .text: return item.kind == .text
+        case .text: return item.kind == .text || item.kind == .color
         case .link: return item.kind == .link
         case .code: return item.kind == .code
         case .image: return item.kind == .image || Self.firstFileIsImage(item)

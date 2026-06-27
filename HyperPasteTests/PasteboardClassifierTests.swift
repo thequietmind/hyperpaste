@@ -95,6 +95,27 @@ struct PasteboardClassifierTests {
         #expect(item.kind == .link)
     }
 
+    @Test("color value classifies as .color with original text payload")
+    func colorDetection() {
+        let snapshot = PasteboardSnapshot(
+            types: [.string],
+            string: "rgba(255,0,0,.5)"
+        )
+        let result = makeClassifier().classify(snapshot: snapshot, sourceBundleID: nil)
+        guard case let .classified(item) = result else {
+            Issue.record("Expected classified, got \(result)")
+            return
+        }
+        #expect(item.kind == .color)
+        guard case let .text(raw) = item.payload else {
+            Issue.record("Expected .text payload")
+            return
+        }
+        #expect(raw == "rgba(255,0,0,.5)")
+        #expect(item.previewText == "rgba(255,0,0,.5)")
+        #expect(item.searchableText == "rgba(255,0,0,.5)")
+    }
+
     // MARK: - Image
 
     @Test("pasteboard with PNG data classifies as .image")

@@ -15,6 +15,10 @@ struct ItemCardView: View {
     private var pinSystemImage: String { isPinned ? "pin.fill" : "pin" }
     private var pinActionLabel: LocalizedStringKey { isPinned ? "Unpin item" : "Pin item" }
     private var pinMenuTitle: LocalizedStringKey { isPinned ? "Unpin" : "Pin" }
+    private var parsedColor: ParsedColor? {
+        guard item.kind == .color, let text = item.text else { return nil }
+        return ColorParser.parse(text)
+    }
 
     var body: some View {
         PrimaryCard(isSelected: isSelected) {
@@ -68,7 +72,7 @@ struct ItemCardView: View {
     @ViewBuilder
     private var leading: some View {
         switch item.kind {
-        case .text, .link, .code:
+        case .text, .link, .code, .color:
             Image(systemName: item.kind.symbolName)
                 .font(.callout)
                 .foregroundStyle(.secondary)
@@ -148,6 +152,9 @@ struct ItemCardView: View {
 
     private var title: some View {
         HStack(spacing: 6) {
+            if let parsedColor {
+                ColorSwatch(color: parsedColor)
+            }
             Text(item.previewText)
                 .font(titleFont)
                 .fontWeight(.medium)
@@ -186,7 +193,7 @@ struct ItemCardView: View {
             return details
         case .files:
             return fileDetails
-        case .text, .link, .code:
+        case .text, .link, .code, .color:
             if let app = item.sourceAppName, !app.isEmpty {
                 return [app]
             }
@@ -215,12 +222,69 @@ struct ItemCardView: View {
 
 }
 
+private struct ColorSwatch: View {
+    let color: ParsedColor
+
+    private let size: CGFloat = 16
+    private let checkerSize: CGFloat = 4
+
+    var body: some View {
+        ZStack {
+            if color.alpha < 1 {
+                Checkerboard(size: checkerSize)
+            }
+            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                .fill(swiftUIColor)
+        }
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.16), lineWidth: 1)
+        }
+        .accessibilityHidden(true)
+    }
+
+    private var swiftUIColor: Color {
+        Color(
+            red: color.red,
+            green: color.green,
+            blue: color.blue,
+            opacity: color.alpha
+        )
+    }
+}
+
+private struct Checkerboard: View {
+    let size: CGFloat
+
+    var body: some View {
+        Canvas { context, canvasSize in
+            let columns = Int(ceil(canvasSize.width / size))
+            let rows = Int(ceil(canvasSize.height / size))
+            for row in 0..<rows {
+                for column in 0..<columns where (row + column).isMultiple(of: 2) {
+                    let rect = CGRect(
+                        x: CGFloat(column) * size,
+                        y: CGFloat(row) * size,
+                        width: size,
+                        height: size
+                    )
+                    context.fill(Path(rect), with: .color(Color.primary.opacity(0.14)))
+                }
+            }
+        }
+        .background(Color.primary.opacity(0.05))
+    }
+}
+
 extension ItemKind {
     var symbolName: String {
         switch self {
         case .text: return "text.alignleft"
         case .link: return "link"
         case .code: return "chevron.left.forwardslash.chevron.right"
+        case .color: return "paintpalette"
         case .image: return "photo"
         case .files: return "doc.on.doc"
         }

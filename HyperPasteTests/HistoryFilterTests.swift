@@ -14,6 +14,7 @@ struct HistoryFilterTests {
     @Test("non-image filters match only their exact kind")
     func nonImageFiltersMatchExactKind() {
         #expect(HistoryFilter.text.matches(makeItem(kind: .text)))
+        #expect(HistoryFilter.text.matches(makeItem(kind: .color)))
         #expect(!HistoryFilter.text.matches(makeItem(kind: .link)))
         #expect(!HistoryFilter.text.matches(makeItem(kind: .code)))
         #expect(!HistoryFilter.text.matches(makeItem(kind: .image)))

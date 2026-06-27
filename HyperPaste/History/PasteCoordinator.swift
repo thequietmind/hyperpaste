@@ -10,7 +10,7 @@ struct PasteCoordinator {
         let pasteboard = NSPasteboard.general
 
         switch item.kind {
-        case .text, .link, .code:
+        case .text, .link, .code, .color:
             guard let text = item.text else { return false }
             _ = plainText
             pasteboard.clearContents()
@@ -72,7 +72,7 @@ struct PasteCoordinator {
 
     private static func isTextLike(_ kind: ItemKind) -> Bool {
         switch kind {
-        case .text, .link, .code:
+        case .text, .link, .code, .color:
             return true
         case .image, .files:
             return false
