@@ -95,8 +95,6 @@ final class HistoryPanelController: NSObject {
                 return nil
             }
 
-            guard event.modifierFlags.intersection(Self.commandModifierFlags).isEmpty else { return event }
-
             if let sheet {
                 if Self.returnKeyCodes.contains(event.keyCode),
                    Self.performDeleteButton(in: sheet) {
@@ -104,6 +102,14 @@ final class HistoryPanelController: NSObject {
                 }
                 return event
             }
+
+            if event.keyCode == Self.sKeyCode,
+               Self.isCommandOnly(event.modifierFlags) {
+                HistoryPanelKeyCommand.togglePin.post(from: panel)
+                return nil
+            }
+
+            guard event.modifierFlags.intersection(Self.commandModifierFlags).isEmpty else { return event }
 
             if Self.deleteKeyCodes.contains(event.keyCode) {
                 if let textEditor = panel.firstResponder as? NSText,
@@ -129,8 +135,14 @@ final class HistoryPanelController: NSObject {
     private static let deleteKeyCodes: Set<UInt16> = [51, 117]
     private static let returnKeyCodes: Set<UInt16> = [36, 76]
     private static let tabKeyCodes: Set<UInt16> = [48]
+    private static let sKeyCode: UInt16 = 1
     private static let commandModifierFlags: NSEvent.ModifierFlags = [.command, .option, .control]
     private static let controlTabIgnoredModifierFlags: NSEvent.ModifierFlags = [.command, .option]
+
+    private static func isCommandOnly(_ flags: NSEvent.ModifierFlags) -> Bool {
+        flags.contains(.command)
+            && flags.intersection([.shift, .option, .control]).isEmpty
+    }
 
     private static func isEditingText(in panel: NSPanel) -> Bool {
         if panel.firstResponder is NSText { return true }
@@ -289,6 +301,7 @@ enum HistoryPanelKeyCommand: String {
     case commit
     case escape
     case delete
+    case togglePin
 
     private static let userInfoKey = "command"
     private static let extendsSelectionUserInfoKey = "extendsSelection"
@@ -321,7 +334,7 @@ enum HistoryPanelKeyCommand: String {
         switch self {
         case .selectPreviousFilter, .selectNextFilter:
             return true
-        case .moveUp, .moveDown, .commit, .escape, .delete:
+        case .moveUp, .moveDown, .commit, .escape, .delete, .togglePin:
             return false
         }
     }

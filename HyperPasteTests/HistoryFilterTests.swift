@@ -14,7 +14,7 @@ struct HistoryFilterTests {
     @Test("non-image filters match only their exact kind")
     func nonImageFiltersMatchExactKind() {
         #expect(HistoryFilter.text.matches(makeItem(kind: .text)))
-        #expect(HistoryFilter.text.matches(makeItem(kind: .color)))
+        #expect(!HistoryFilter.text.matches(makeItem(kind: .color)))
         #expect(!HistoryFilter.text.matches(makeItem(kind: .link)))
         #expect(!HistoryFilter.text.matches(makeItem(kind: .code)))
         #expect(!HistoryFilter.text.matches(makeItem(kind: .image)))
@@ -25,6 +25,9 @@ struct HistoryFilterTests {
 
         #expect(HistoryFilter.code.matches(makeItem(kind: .code)))
         #expect(!HistoryFilter.code.matches(makeItem(kind: .files, fileNames: ["x.swift"])))
+
+        #expect(HistoryFilter.color.matches(makeItem(kind: .color)))
+        #expect(!HistoryFilter.color.matches(makeItem(kind: .text)))
     }
 
     @Test("Files matches non-image files but excludes image files")
@@ -44,9 +47,9 @@ struct HistoryFilterTests {
         #expect(!HistoryFilter.files.matches(makeItem(kind: .text)))
     }
 
-    @Test("filter ordering matches All, Text, Code, Links, Images, Files, Pinned")
+    @Test("filter ordering matches All, Text, Code, Links, Images, Colors, Files, Pinned")
     func filterOrdering() {
-        #expect(HistoryFilter.allCases == [.all, .text, .code, .link, .image, .files, .pinned])
+        #expect(HistoryFilter.allCases == [.all, .text, .code, .link, .image, .color, .files, .pinned])
     }
 
     @Test("Pinned matches only items with a pinnedAt timestamp")

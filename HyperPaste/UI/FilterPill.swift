@@ -3,6 +3,7 @@ import SwiftUI
 struct FilterPill: View {
     let title: LocalizedStringKey
     var systemImage: String? = nil
+    var isIconOnly: Bool = false
     var isSelected: Bool = false
     let action: () -> Void
 
@@ -16,11 +17,13 @@ struct FilterPill: View {
                     Image(systemName: systemImage)
                         .font(.subheadline)
                 }
-                Text(title)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                if !isIconOnly {
+                    Text(title)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                }
             }
-            .padding(.horizontal, 11)
+            .padding(.horizontal, isIconOnly ? 9 : 11)
             .padding(.vertical, 4)
             .frame(minHeight: 24)
             .foregroundStyle(foreground)
@@ -31,6 +34,7 @@ struct FilterPill: View {
         }
         .buttonStyle(.plain)
         .focusEffectDisabled()
+        .accessibilityLabel(title)
         .onHover { isHovering = $0 }
         .animation(reduceMotion ? nil : .snappy, value: isSelected)
         .animation(reduceMotion ? nil : .snappy, value: isHovering)

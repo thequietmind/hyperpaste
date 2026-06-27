@@ -53,6 +53,7 @@ struct ItemCardView: View {
             Button(pinMenuTitle) {
                 onRequestTogglePin()
             }
+            .keyboardShortcut("s", modifiers: .command)
             Divider()
             Button("Delete", role: .destructive) {
                 onRequestDelete()

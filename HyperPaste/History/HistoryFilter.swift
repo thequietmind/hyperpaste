@@ -7,6 +7,7 @@ enum HistoryFilter: Hashable, CaseIterable, Sendable {
     case code
     case link
     case image
+    case color
     case files
     case pinned
 
@@ -17,6 +18,7 @@ enum HistoryFilter: Hashable, CaseIterable, Sendable {
         case .code: return "Code"
         case .link: return "Links"
         case .image: return "Images"
+        case .color: return "Colors"
         case .files: return "Files"
         case .pinned: return "Pinned"
         }
@@ -29,6 +31,7 @@ enum HistoryFilter: Hashable, CaseIterable, Sendable {
         case .code: return "chevron.left.forwardslash.chevron.right"
         case .link: return "link"
         case .image: return "photo"
+        case .color: return "eyedropper"
         case .files: return "doc.on.doc"
         case .pinned: return "pin.fill"
         }
@@ -37,10 +40,11 @@ enum HistoryFilter: Hashable, CaseIterable, Sendable {
     func matches(_ item: ClipboardItem) -> Bool {
         switch self {
         case .all: return true
-        case .text: return item.kind == .text || item.kind == .color
+        case .text: return item.kind == .text
         case .link: return item.kind == .link
         case .code: return item.kind == .code
         case .image: return item.kind == .image || Self.firstFileIsImage(item)
+        case .color: return item.kind == .color
         case .files: return item.kind == .files && !Self.firstFileIsImage(item)
         case .pinned: return item.pinnedAt != nil
         }

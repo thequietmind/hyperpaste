@@ -146,7 +146,14 @@ struct HistoryView: View {
             handleEscape()
         case .delete:
             requestDeleteSelected()
+        case .togglePin:
+            togglePinSelected()
         }
+    }
+
+    private func togglePinSelected() {
+        guard let item = activeSelectedItem else { return }
+        onRequestTogglePin(item)
     }
 
     private func handleEscape() {
@@ -398,6 +405,7 @@ private struct FilterPillsRow: View {
                     FilterPill(
                         title: filter.titleKey,
                         systemImage: filter.systemImage,
+                        isIconOnly: filter == .pinned,
                         isSelected: selected == filter
                     ) {
                         onSelect(filter)
