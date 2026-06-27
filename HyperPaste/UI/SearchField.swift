@@ -1,30 +1,34 @@
 import SwiftUI
 
-struct SearchField: View {
+struct SearchField<Accessory: View>: View {
     var prompt: LocalizedStringKey = "Search"
     @Binding var text: String
     @Binding var externalFocus: Bool
+    @ViewBuilder var accessory: () -> Accessory
 
     @FocusState private var isFocused: Bool
 
     init(
         prompt: LocalizedStringKey = "Search",
         text: Binding<String>,
-        isFocused: Binding<Bool> = .constant(false)
+        isFocused: Binding<Bool> = .constant(false),
+        @ViewBuilder accessory: @escaping () -> Accessory = { EmptyView() }
     ) {
         self.prompt = prompt
         _text = text
         _externalFocus = isFocused
+        self.accessory = accessory
     }
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
-                .font(.subheadline)
+                .font(.body)
                 .foregroundStyle(.secondary)
 
             TextField(prompt, text: $text)
                 .textFieldStyle(.plain)
+                .font(.body)
                 .focused($isFocused)
                 .submitLabel(.search)
 
@@ -35,22 +39,24 @@ struct SearchField: View {
                     isFocused = true
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.subheadline)
+                        .font(.body)
                         .foregroundStyle(.tertiary)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Clear search")
             }
+
+            accessory()
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .frame(minHeight: 28)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .frame(minHeight: 32)
         .background {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color(nsColor: .controlBackgroundColor).opacity(0.6))
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .fill(Color(nsColor: .controlBackgroundColor).opacity(0.55))
         }
-        .hoverFocusRing(cornerRadius: 8, isFocused: isFocused, showsHoverBackground: false)
-        .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .hoverFocusRing(cornerRadius: 9, isFocused: isFocused, showsHoverBackground: false)
+        .contentShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
         .onTapGesture {
             externalFocus = true
             isFocused = true
@@ -69,19 +75,29 @@ struct SearchField: View {
 
 #Preview("Empty") {
     StatefulPreview { text in
-        SearchField(text: text)
-            .padding(12)
-            .frame(width: 360)
-            .background(.regularMaterial)
+        SearchField(prompt: "Search your clipboard…", text: text) {
+            Text("7 items")
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(12)
+        .frame(width: 360)
+        .background(.regularMaterial)
     }
 }
 
 #Preview("With text") {
     StatefulPreview(initial: "pasly") { text in
-        SearchField(text: text)
-            .padding(12)
-            .frame(width: 360)
-            .background(.regularMaterial)
+        SearchField(prompt: "Search your clipboard…", text: text) {
+            Text("3 items")
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundStyle(.tertiary)
+        }
+        .padding(12)
+        .frame(width: 360)
+        .background(.regularMaterial)
     }
 }
 

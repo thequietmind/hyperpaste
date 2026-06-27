@@ -22,6 +22,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         panelController?.show()
     }
 
+    func requestClearHistory() {
+        panelController?.requestClearHistory()
+    }
+
     func attachStore(_ store: ClipboardStore) {
         guard self.store == nil else { return }
         self.store = store

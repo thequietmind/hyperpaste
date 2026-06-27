@@ -6,7 +6,6 @@ struct HistoryView: View {
     let attachmentStore: AttachmentStore
     let onDismiss: () -> Void
     let onCommit: () -> Void
-    let onRequestClear: () -> Void
     let onRequestDeleteItem: (ClipboardItem) -> Void
     let onRequestDeleteItems: ([ClipboardItem]) -> Void
     let onRequestTogglePin: (ClipboardItem) -> Void
@@ -40,15 +39,22 @@ struct HistoryView: View {
     }
 
     var body: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 10) {
             HStack(spacing: 8) {
-                SearchField(text: $searchText, isFocused: $isSearchFocused)
-                    .onSubmit { pasteSelected(plainText: false) }
-
-                ItemActionButton(systemImage: "trash", label: "Clear history") {
-                    onRequestClear()
+                SearchField(
+                    prompt: "Search your clipboard…",
+                    text: $searchText,
+                    isFocused: $isSearchFocused
+                ) {
+                    if !filteredItems.isEmpty {
+                        Text(itemCountLabel)
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundStyle(.tertiary)
+                            .monospacedDigit()
+                    }
                 }
-                .disabled(items.isEmpty)
+                .onSubmit { pasteSelected(plainText: false) }
             }
 
             FilterPillsRow(
@@ -59,14 +65,14 @@ struct HistoryView: View {
             content
         }
         .frame(maxHeight: .infinity, alignment: .top)
-        .padding(EdgeInsets(top: 14, leading: 12, bottom: 12, trailing: 12))
+        .padding(EdgeInsets(top: 14, leading: 14, bottom: 12, trailing: 14))
         .frame(width: 600, height: 600, alignment: .top)
         .ignoresSafeArea(.container, edges: .top)
         .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(Color(nsColor: .separatorColor).opacity(0.55), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color(nsColor: .separatorColor).opacity(0.3), lineWidth: 0.5)
         }
         .background {
             Button("") { pasteSelected(plainText: true) }
@@ -185,6 +191,10 @@ struct HistoryView: View {
         selectFilter(filters[nextIndex])
     }
 
+    private var itemCountLabel: LocalizedStringKey {
+        filteredItems.count == 1 ? "1 item" : "\(filteredItems.count) items"
+    }
+
     @ViewBuilder
     private var content: some View {
         if filteredItems.isEmpty {
@@ -198,12 +208,11 @@ struct HistoryView: View {
         } else {
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(spacing: 8) {
+                    LazyVStack(spacing: 1) {
                         ForEach(Array(filteredItems.enumerated()), id: \.element.id) { index, item in
                             ItemCardView(
                                 item: item,
                                 isSelected: isSelected(item, at: index),
-                                attachmentStore: attachmentStore,
                                 onRequestDelete: { onRequestDeleteItem(item) },
                                 onRequestTogglePin: { onRequestTogglePin(item) }
                             )
@@ -383,7 +392,7 @@ private struct FilterPillsRow: View {
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 4) {
+            HStack(spacing: 6) {
                 ForEach(HistoryFilter.allCases, id: \.self) { filter in
                     FilterPill(
                         title: filter.titleKey,

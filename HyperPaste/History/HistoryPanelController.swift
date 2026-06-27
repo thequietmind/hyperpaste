@@ -34,9 +34,6 @@ final class HistoryPanelController: NSObject {
                 attachmentStore: store.attachmentStore,
                 onDismiss: { [weak self] in self?.dismiss() },
                 onCommit: { [weak self] in self?.commitAndDismiss() },
-                onRequestClear: { [weak self] in
-                    self?.presentClearConfirmation()
-                },
                 onRequestDeleteItem: { [weak self] item in
                     self?.presentDeleteConfirmation(for: item)
                 },
@@ -173,18 +170,26 @@ final class HistoryPanelController: NSObject {
         return app
     }
 
-    private func presentClearConfirmation() {
-        guard let panel else { return }
+    func requestClearHistory() {
         let alert = NSAlert()
         alert.messageText = String(localized: "Clear history?")
         alert.informativeText = String(localized: "This will remove all clipboard history.")
         let clearButton = alert.addButton(withTitle: String(localized: "Clear"))
         clearButton.hasDestructiveAction = true
         alert.addButton(withTitle: String(localized: "Cancel"))
-        alert.beginSheetModal(for: panel) { [weak self] response in
-            guard response == .alertFirstButtonReturn else { return }
-            try? self?.store.clearAll()
+
+        if let panel, panel.isVisible {
+            alert.beginSheetModal(for: panel) { [weak self] response in
+                guard response == .alertFirstButtonReturn else { return }
+                try? self?.store.clearAll()
+            }
+            return
         }
+
+        NSApp.activate(ignoringOtherApps: true)
+        let response = alert.runModal()
+        guard response == .alertFirstButtonReturn else { return }
+        try? store.clearAll()
     }
 
     private func togglePinned(for item: ClipboardItem) {

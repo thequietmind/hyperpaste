@@ -54,6 +54,12 @@ private struct MenuBarMenuContent: View {
 
         Divider()
 
+        Button("Clear Clipboard History…") {
+            appDelegate.requestClearHistory()
+        }
+
+        Divider()
+
         Button("Settings…") {
             openSettings()
             Task { @MainActor in

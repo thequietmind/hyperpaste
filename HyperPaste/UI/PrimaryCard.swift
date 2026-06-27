@@ -19,16 +19,16 @@ struct PrimaryCard<Content: View>: View {
             .overlay {
                 if isSelected {
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .strokeBorder(Color.accentColor.opacity(0.6), lineWidth: 1.5)
+                        .strokeBorder(Color.accentColor.opacity(0.55), lineWidth: 1)
                 }
             }
     }
 
     private var fillStyle: AnyShapeStyle {
         if isSelected {
-            return AnyShapeStyle(Color.accentColor.opacity(0.12))
+            return AnyShapeStyle(Color.accentColor.opacity(0.16))
         }
-        return AnyShapeStyle(Color(nsColor: .controlBackgroundColor).opacity(0.6))
+        return AnyShapeStyle(Color(nsColor: .controlBackgroundColor).opacity(0.5))
     }
 }
 

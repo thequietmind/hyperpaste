@@ -20,7 +20,7 @@ struct FilterPill: View {
                     .font(.subheadline)
                     .fontWeight(.medium)
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 11)
             .padding(.vertical, 4)
             .frame(minHeight: 24)
             .foregroundStyle(foreground)
@@ -37,7 +37,7 @@ struct FilterPill: View {
     }
 
     private var foreground: Color {
-        isSelected ? Color.white : Color.primary
+        isSelected ? Color.white : Color.secondary
     }
 
     private var fill: Color {
@@ -45,9 +45,9 @@ struct FilterPill: View {
             return Color.accentColor
         }
         if isHovering {
-            return Color.accentColor.opacity(0.1)
+            return Color.accentColor.opacity(0.09)
         }
-        return Color(nsColor: .controlBackgroundColor).opacity(0.5)
+        return Color.clear
     }
 }
 
