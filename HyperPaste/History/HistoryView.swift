@@ -208,7 +208,7 @@ struct HistoryView: View {
         } else {
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(spacing: 1) {
+                    LazyVStack(spacing: 2) {
                         ForEach(Array(filteredItems.enumerated()), id: \.element.id) { index, item in
                             ItemCardView(
                                 item: item,

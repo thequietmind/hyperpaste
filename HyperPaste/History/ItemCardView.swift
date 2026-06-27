@@ -7,8 +7,8 @@ struct ItemCardView: View {
     let onRequestDelete: () -> Void
     let onRequestTogglePin: () -> Void
 
-    @State private var isHovering = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
 
     private var isPinned: Bool { item.pinnedAt != nil }
     private var pinMenuTitle: LocalizedStringKey { isPinned ? "Unpin" : "Pin" }
@@ -18,34 +18,32 @@ struct ItemCardView: View {
     }
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
+        HStack(alignment: .center, spacing: 14) {
             badge
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 title
                 metadataRow
             }
 
-            Spacer(minLength: 8)
+            Spacer(minLength: 12)
 
             if isPinned {
                 Image(systemName: "star.fill")
-                    .font(.subheadline)
-                    .foregroundStyle(Color.accentColor)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(pinColor)
                     .accessibilityLabel("Pinned")
             }
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .frame(minHeight: 56)
+        .padding(.vertical, 12)
+        .frame(minHeight: 66)
         .background {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            Capsule(style: .continuous)
                 .fill(rowFill)
         }
-        .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .onHover { isHovering = $0 }
+        .contentShape(Capsule(style: .continuous))
         .animation(reduceMotion ? nil : .smooth(duration: 0.22), value: isSelected)
-        .animation(reduceMotion ? nil : .smooth(duration: 0.18), value: isHovering)
         .contextMenu {
             Button(pinMenuTitle) {
                 onRequestTogglePin()
@@ -58,9 +56,19 @@ struct ItemCardView: View {
     }
 
     private var rowFill: Color {
-        if isSelected { return Color.accentColor.opacity(0.18) }
-        if isHovering { return Color.primary.opacity(0.04) }
-        return .clear
+        isSelected ? selectedRowFill : .clear
+    }
+
+    private var selectedRowFill: Color {
+        colorScheme == .dark
+            ? Color(red: 0.18, green: 0.17, blue: 0.36)
+            : Color(red: 0.90, green: 0.89, blue: 1.00)
+    }
+
+    private var pinColor: Color {
+        colorScheme == .dark
+            ? Color(red: 0.55, green: 0.51, blue: 1.00)
+            : Color(red: 0.39, green: 0.35, blue: 0.92)
     }
 
     // MARK: - Badge
@@ -74,10 +82,10 @@ struct ItemCardView: View {
                 Circle()
                     .fill(Color(nsColor: .quaternaryLabelColor).opacity(0.55))
                 Image(systemName: item.kind.symbolName)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(.secondary)
             }
-            .frame(width: 32, height: 32)
+            .frame(width: 40, height: 40)
         }
     }
 
@@ -89,7 +97,7 @@ struct ItemCardView: View {
             Circle()
                 .fill(swiftUIColor(color))
         }
-        .frame(width: 32, height: 32)
+        .frame(width: 40, height: 40)
         .clipShape(Circle())
         .accessibilityHidden(true)
     }
@@ -117,9 +125,9 @@ struct ItemCardView: View {
     private var titleFont: Font {
         switch item.kind {
         case .code, .color:
-            return .system(.body, design: .monospaced)
+            return .system(size: 16, weight: .semibold, design: .monospaced)
         default:
-            return .body
+            return .system(size: 16, weight: .semibold)
         }
     }
 
@@ -135,7 +143,7 @@ struct ItemCardView: View {
                 piece
             }
         }
-        .font(.footnote)
+        .font(.system(size: 13))
         .foregroundStyle(.secondary)
     }
 
