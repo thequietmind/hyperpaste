@@ -48,33 +48,40 @@ private struct MenuBarMenuContent: View {
     @Environment(\.openSettings) private var openSettings
 
     var body: some View {
-        Button("Show Clipboard History") {
+        Button {
             appDelegate.showHistory()
+        } label: {
+            Label("Show Clipboard History", systemImage: "clock.arrow.circlepath")
         }
 
         Divider()
 
-        Button("Clear Clipboard History…") {
+        Button {
             appDelegate.requestClearHistory()
+        } label: {
+            Label("Clear Clipboard History…", systemImage: "trash")
         }
 
         Divider()
 
-        Button("Settings…") {
+        Button {
             openSettings()
             Task { @MainActor in
                 await Task.yield()
                 NSApp.activate(ignoringOtherApps: true)
             }
+        } label: {
+            Label("Settings…", systemImage: "gearshape")
         }
         .keyboardShortcut(",", modifiers: .command)
 
         Divider()
 
-        Button("Quit HyperPaste") {
+        Button {
             NSApp.terminate(nil)
+        } label: {
+            Label("Quit HyperPaste", systemImage: "power")
         }
         .keyboardShortcut("q", modifiers: .command)
     }
 }
-
