@@ -221,6 +221,8 @@ struct HistoryView: View {
                                 item: item,
                                 attachmentStore: attachmentStore,
                                 isSelected: isSelected(item, at: index),
+                                onRequestPaste: { paste(item) },
+                                onRequestCopy: { copy(item) },
                                 onRequestDelete: { onRequestDeleteItem(item) },
                                 onRequestTogglePin: { onRequestTogglePin(item) }
                             )
@@ -387,8 +389,18 @@ struct HistoryView: View {
         }
 
         guard let item = activeSelectedItem else { return }
+        paste(item, plainText: plainText)
+    }
+
+    private func paste(_ item: ClipboardItem, plainText: Bool = false) {
         if pasteCoordinator.writeBack(item, plainText: plainText, attachmentStore: attachmentStore) {
             onCommit()
+        }
+    }
+
+    private func copy(_ item: ClipboardItem) {
+        if !pasteCoordinator.writeBack(item, plainText: false, attachmentStore: attachmentStore) {
+            NSSound.beep()
         }
     }
 }

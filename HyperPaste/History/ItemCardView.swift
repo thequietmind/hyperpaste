@@ -5,10 +5,13 @@ struct ItemCardView: View {
     let item: ClipboardItem
     let attachmentStore: AttachmentStore
     let isSelected: Bool
+    let onRequestPaste: () -> Void
+    let onRequestCopy: () -> Void
     let onRequestDelete: () -> Void
     let onRequestTogglePin: () -> Void
 
     @State private var thumbnail: NSImage?
+    @State private var fileIcon: NSImage?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorScheme) private var colorScheme
 
@@ -47,9 +50,20 @@ struct ItemCardView: View {
         .contentShape(Capsule(style: .continuous))
         .animation(reduceMotion ? nil : .smooth(duration: 0.22), value: isSelected)
         .task(id: item.id) {
+            thumbnail = nil
+            fileIcon = nil
             thumbnail = await loadThumbnail()
         }
         .contextMenu {
+            Button("Paste") {
+                onRequestPaste()
+            }
+            .keyboardShortcut(.return, modifiers: [])
+            Button("Copy") {
+                onRequestCopy()
+            }
+            .keyboardShortcut("c", modifiers: .command)
+            Divider()
             Button(pinMenuTitle) {
                 onRequestTogglePin()
             }
@@ -58,6 +72,7 @@ struct ItemCardView: View {
             Button("Delete", role: .destructive) {
                 onRequestDelete()
             }
+            .keyboardShortcut(.delete, modifiers: [])
         }
     }
 
@@ -85,6 +100,8 @@ struct ItemCardView: View {
             colorBadge(for: parsedColor)
         } else if let thumbnail {
             thumbnailBadge(thumbnail)
+        } else if let fileIcon {
+            fileIconBadge(fileIcon)
         } else {
             glyphBadge
         }
@@ -112,6 +129,14 @@ struct ItemCardView: View {
             .accessibilityHidden(true)
     }
 
+    private func fileIconBadge(_ image: NSImage) -> some View {
+        Image(nsImage: image)
+            .resizable()
+            .scaledToFit()
+            .frame(width: 40, height: 40)
+            .accessibilityHidden(true)
+    }
+
     private var glyphBadge: some View {
         ZStack {
             Circle()
@@ -128,7 +153,11 @@ struct ItemCardView: View {
         case .image:
             return ThumbnailCache.shared.thumbnail(for: item, attachmentStore: attachmentStore)
         case .files:
-            return await loadFileThumbnail()
+            if let thumbnail = await loadFileThumbnail() {
+                return thumbnail
+            }
+            fileIcon = loadFileIcon()
+            return nil
         case .text, .link, .code, .color:
             return nil
         }
@@ -146,6 +175,20 @@ struct ItemCardView: View {
             else { continue }
             ThumbnailCache.shared.setFileThumbnail(image, forID: item.id)
             return image
+        }
+        return nil
+    }
+
+    private func loadFileIcon() -> NSImage? {
+        guard item.kind == .files,
+              let bookmarks = item.fileBookmarks
+        else { return nil }
+
+        for bookmark in bookmarks {
+            guard let url = resolveFileURL(bookmark: bookmark) else { continue }
+            let didAccess = url.startAccessingSecurityScopedResource()
+            defer { if didAccess { url.stopAccessingSecurityScopedResource() } }
+            return FileIconLoader.icon(for: url, size: 40)
         }
         return nil
     }
