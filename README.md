@@ -98,11 +98,25 @@ Download the latest release from the Releases page.
 
 https://github.com/thequietmind/hyperpaste/releases/latest
 
-Or build from source:
+Requires macOS 15.4 or later.
+
+## Build from Source
+
+To build the project from source, first clone the repo
 
 ```bash
 git clone https://github.com/thequietmind/hyperpaste.git
+```
+
+Change into the repository directory
+
+```sh
 cd hyperpaste
+```
+
+Open the project in XCode
+
+```sh
 open HyperPaste.xcodeproj
 ```
 
