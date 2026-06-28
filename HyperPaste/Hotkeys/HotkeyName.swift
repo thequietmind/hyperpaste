@@ -4,6 +4,6 @@ import KeyboardShortcuts
 extension KeyboardShortcuts.Name {
     static let toggleHistory = Self(
         "toggleHistory",
-        initial: .init(.c, modifiers: [.command, .shift])
+        initial: .init(.x, modifiers: [.command, .control])
     )
 }
