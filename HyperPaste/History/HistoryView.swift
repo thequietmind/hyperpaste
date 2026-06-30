@@ -19,7 +19,10 @@ struct HistoryView: View {
     @State private var selectedItemIDs: Set<UUID> = []
     @State private var selectionAnchorIndex: Int?
     @State private var isSearchFocused = false
+    @State private var pasteInProgress = false
     @FocusState private var isHistoryFocused: Bool
+
+    private static let mouseActivationCommitDelay: Duration = .milliseconds(300)
 
     private let pasteCoordinator = PasteCoordinator()
 
@@ -97,6 +100,7 @@ struct HistoryView: View {
         .focused($isHistoryFocused)
         .onAppear {
             searchText = ""
+            pasteInProgress = false
             resetSelection()
             focusSearchField()
         }
@@ -249,7 +253,7 @@ struct HistoryView: View {
     }
 
     private func handleItemClick(at index: Int) {
-        guard filteredItems.indices.contains(index) else { return }
+        guard !pasteInProgress, filteredItems.indices.contains(index) else { return }
         let modifiers = currentModifierFlags
         let wasMultipleSelection = hasMultipleSelection
 
@@ -268,7 +272,7 @@ struct HistoryView: View {
 
         selectOnlyItem(at: index)
         if !wasMultipleSelection {
-            pasteSelected(plainText: false)
+            pasteSelected(plainText: false, activation: .mouse)
         }
     }
 
@@ -377,11 +381,12 @@ struct HistoryView: View {
         }
     }
 
-    private func pasteSelected(plainText: Bool) {
+    private func pasteSelected(plainText: Bool, activation: PasteActivation = .immediate) {
+        guard !pasteInProgress else { return }
         let selectedItems = selectedItemsInDisplayOrder
         if selectedItems.count > 1 {
             if pasteCoordinator.writeBackSelected(selectedItems) {
-                onCommit()
+                commitPaste(activation: activation)
             } else {
                 NSSound.beep()
             }
@@ -389,12 +394,33 @@ struct HistoryView: View {
         }
 
         guard let item = activeSelectedItem else { return }
-        paste(item, plainText: plainText)
+        paste(item, plainText: plainText, activation: activation)
     }
 
-    private func paste(_ item: ClipboardItem, plainText: Bool = false) {
+    private func paste(
+        _ item: ClipboardItem,
+        plainText: Bool = false,
+        activation: PasteActivation = .immediate
+    ) {
+        guard !pasteInProgress else { return }
         if pasteCoordinator.writeBack(item, plainText: plainText, attachmentStore: attachmentStore) {
+            commitPaste(activation: activation)
+        }
+    }
+
+    private func commitPaste(activation: PasteActivation) {
+        guard !pasteInProgress else { return }
+        pasteInProgress = true
+
+        switch activation {
+        case .immediate:
             onCommit()
+        case .mouse:
+            Task { @MainActor in
+                try? await Task.sleep(for: Self.mouseActivationCommitDelay)
+                guard pasteInProgress else { return }
+                onCommit()
+            }
         }
     }
 
@@ -405,6 +431,10 @@ struct HistoryView: View {
     }
 }
 
+private enum PasteActivation {
+    case immediate
+    case mouse
+}
 
 private struct FilterPillsRow: View {
     let selected: HistoryFilter
