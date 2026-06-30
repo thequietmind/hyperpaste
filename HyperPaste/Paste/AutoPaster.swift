@@ -44,8 +44,8 @@ final class AutoPaster {
 
         if !app.isActive {
             app.activate(options: [])
-            try? await Task.sleep(for: activationTimeout)
         }
+        try? await Task.sleep(for: activationTimeout)
 
         synthesizePaste()
     }

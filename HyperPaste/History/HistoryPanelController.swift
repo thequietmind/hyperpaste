@@ -9,6 +9,8 @@ final class HistoryPanelController: NSObject {
     private let onboardingPresenter: AutoPasteOnboardingPresenter
     private var panel: NSPanel?
     private var deleteKeyMonitor: Any?
+    private var activationObserver: Any?
+    private var lastExternalApplication: NSRunningApplication?
     private var previousApplication: NSRunningApplication?
 
     private static let panelSize = NSSize(width: 600, height: 600)
@@ -21,13 +23,24 @@ final class HistoryPanelController: NSObject {
         self.store = store
         self.autoPaster = autoPaster
         self.onboardingPresenter = onboardingPresenter
+        super.init()
+        observeApplicationActivation()
+    }
+
+    deinit {
+        if let activationObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(activationObserver)
+        }
+        if let deleteKeyMonitor {
+            NSEvent.removeMonitor(deleteKeyMonitor)
+        }
     }
 
     func show() {
         try? store.pruneUnavailableFileItems()
         let panel = self.panel ?? makePanel()
         self.panel = panel
-        previousApplication = Self.currentExternalFrontmostApplication()
+        previousApplication = Self.currentExternalFrontmostApplication() ?? lastExternalApplication
 
         let host = HistoryHostingController(
             rootView: HistoryView(
@@ -138,6 +151,22 @@ final class HistoryPanelController: NSObject {
     private static let sKeyCode: UInt16 = 1
     private static let commandModifierFlags: NSEvent.ModifierFlags = [.command, .option, .control]
     private static let controlTabIgnoredModifierFlags: NSEvent.ModifierFlags = [.command, .option]
+
+    private func observeApplicationActivation() {
+        guard activationObserver == nil else { return }
+        activationObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+                  app.bundleIdentifier != Bundle.main.bundleIdentifier
+            else { return }
+            Task { @MainActor [weak self] in
+                self?.lastExternalApplication = app
+            }
+        }
+    }
 
     private static func isCommandOnly(_ flags: NSEvent.ModifierFlags) -> Bool {
         flags.contains(.command)
