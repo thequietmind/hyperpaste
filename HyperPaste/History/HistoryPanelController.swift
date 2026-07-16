@@ -72,6 +72,14 @@ final class HistoryPanelController: NSObject {
         panel?.orderOut(nil)
     }
 
+    func toggle() {
+        if let panel, panel.isVisible {
+            dismiss()
+        } else {
+            show()
+        }
+    }
+
     private func commitAndDismiss() {
         let target = previousApplication
         previousApplication = nil

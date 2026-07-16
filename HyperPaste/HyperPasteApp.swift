@@ -5,47 +5,15 @@ import AppKit
 struct HyperPasteApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
-    private let sharedStore: ClipboardStore
-    private let loginItemService = LoginItemService()
-
-    init() {
-        do {
-            self.sharedStore = try ClipboardStore()
-            loginItemService.enableByDefaultIfNeeded()
-        } catch {
-            fatalError("HyperPaste: failed to initialize ClipboardStore: \(error)")
-        }
-    }
-
     var body: some Scene {
-        MenuBarExtra {
-            MenuBarMenuContent(appDelegate: appDelegate)
-        } label: {
-            MenuBarLabelView(appDelegate: appDelegate, store: sharedStore)
-        }
-        .menuBarExtraStyle(.menu)
-
         Settings {
             SettingsView()
         }
     }
 }
 
-private struct MenuBarLabelView: View {
+struct MenuBarMenuContent: View {
     let appDelegate: AppDelegate
-    let store: ClipboardStore
-
-    var body: some View {
-        Image(systemName: "doc.on.clipboard")
-            .task {
-                appDelegate.attachStore(store)
-            }
-    }
-}
-
-private struct MenuBarMenuContent: View {
-    let appDelegate: AppDelegate
-    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         Button {
@@ -64,15 +32,10 @@ private struct MenuBarMenuContent: View {
 
         Divider()
 
-        Button {
-            openSettings()
-            Task { @MainActor in
-                await Task.yield()
-                NSApp.activate(ignoringOtherApps: true)
-            }
-        } label: {
+        SettingsLink {
             Label("Settings…", systemImage: "gearshape")
         }
+        .buttonStyle(SettingsActivationButtonStyle(appDelegate: appDelegate))
         .keyboardShortcut(",", modifiers: .command)
 
         Divider()
@@ -83,5 +46,18 @@ private struct MenuBarMenuContent: View {
             Label("Quit HyperPaste", systemImage: "power")
         }
         .keyboardShortcut("q", modifiers: .command)
+    }
+}
+
+private struct SettingsActivationButtonStyle: PrimitiveButtonStyle {
+    let appDelegate: AppDelegate
+
+    func makeBody(configuration: Configuration) -> some View {
+        Button {
+            configuration.trigger()
+            appDelegate.bringSettingsWindowForward()
+        } label: {
+            configuration.label
+        }
     }
 }
