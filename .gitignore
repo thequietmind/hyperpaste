@@ -6,6 +6,9 @@ AGENTS.md
 
 **/.claude/settings.local.json
 
+/.workspace-state/
+/specs/
+
 .DS_Store
 .DS_Store?
 **/.DS_Store
