@@ -209,8 +209,8 @@ struct ClipboardStoreTests {
 
     // MARK: - Clear
 
-    @Test("clearAll removes all records and image attachments")
-    func clearAllRemovesRecordsAndAttachments() throws {
+    @Test("clearUnpinned removes unpinned records and image attachments")
+    func clearUnpinnedRemovesRecordsAndAttachments() throws {
         let tempRoot = try makeTempRoot()
         let store = try makeStore(attachmentRoot: tempRoot)
 
@@ -233,17 +233,153 @@ struct ClipboardStoreTests {
         let imageURL = tempRoot.appendingPathComponent(imagePath)
         #expect(FileManager.default.fileExists(atPath: imageURL.path))
 
-        try store.clearAll()
+        try store.clearUnpinned()
 
         let after = try store.allItems()
         #expect(after.isEmpty)
         #expect(!FileManager.default.fileExists(atPath: imageURL.path))
     }
 
-    @Test("clearAll is a no-op when history is already empty")
-    func clearAllNoOpWhenEmpty() throws {
+    @Test("clearUnpinned with mixed history keeps every pinned item intact")
+    func clearUnpinnedMixedHistoryKeepsPinnedItems() throws {
         let store = try makeStore()
-        try store.clearAll()
+        let source = SourceApp(bundleIdentifier: "com.example.app", localizedName: "Example")
+        let t0 = Date(timeIntervalSinceReferenceDate: 1_000)
+        try store.insert(makeTextClassified("Pinned A"), sourceApp: source, now: t0)
+        try store.insert(makeTextClassified("Unpinned A"), sourceApp: nil, now: t0.addingTimeInterval(100))
+        try store.insert(makeTextClassified("Pinned B"), sourceApp: nil, now: t0.addingTimeInterval(200))
+        try store.insert(makeTextClassified("Unpinned B"), sourceApp: nil, now: t0.addingTimeInterval(300))
+
+        let pinTime = Date(timeIntervalSinceReferenceDate: 5_000)
+        for item in try store.allItems() where item.text?.hasPrefix("Pinned") == true {
+            try store.setPinned(item, pinned: true, now: pinTime)
+        }
+        let pinnedBefore = try store.allItems().filter { $0.pinnedAt != nil }.map(ItemSnapshot.init)
+        #expect(pinnedBefore.count == 2)
+
+        try store.clearUnpinned()
+
+        let after = try store.allItems()
+        #expect(after.allSatisfy { $0.pinnedAt != nil })
+        #expect(after.map(ItemSnapshot.init) == pinnedBefore)
+        #expect(after.map(\.text) == ["Pinned B", "Pinned A"])
+        #expect(after.last?.sourceAppName == "Example")
+    }
+
+    @Test("clearUnpinned with pinned-only history deletes and modifies nothing")
+    func clearUnpinnedPinnedOnlyHistoryIsNoOp() throws {
+        let tempRoot = try makeTempRoot()
+        let store = try makeStore(attachmentRoot: tempRoot)
+        let t0 = Date(timeIntervalSinceReferenceDate: 1_000)
+        try store.insert(makeTextClassified("First"), sourceApp: nil, now: t0)
+        let pngData = TestImage.minimalPNG()
+        try store.insert(
+            ClassifiedItem(
+                kind: .image,
+                payload: .image(pngData: pngData, width: 2, height: 2),
+                previewText: "2 × 2",
+                searchableText: "",
+                contentHash: ContentHasher.sha256Hex(pngData),
+                detectedKinds: []
+            ),
+            sourceApp: nil,
+            now: t0.addingTimeInterval(100)
+        )
+        for item in try store.allItems() {
+            try store.setPinned(item, pinned: true, now: Date(timeIntervalSinceReferenceDate: 5_000))
+        }
+        let before = try store.allItems().map(ItemSnapshot.init)
+        let imagePath = try #require(try store.allItems().first(where: { $0.kind == .image })?.imagePath)
+        let imageURL = tempRoot.appendingPathComponent(imagePath)
+
+        try store.clearUnpinned()
+
+        #expect(try store.allItems().map(ItemSnapshot.init) == before)
+        #expect(!store.container.mainContext.hasChanges)
+        #expect(FileManager.default.fileExists(atPath: imageURL.path))
+    }
+
+    @Test("clearUnpinned with unpinned-only history leaves history empty")
+    func clearUnpinnedUnpinnedOnlyHistoryBecomesEmpty() throws {
+        let store = try makeStore()
+        try store.insert(makeTextClassified("One"), sourceApp: nil, now: .now)
+        try store.insert(makeTextClassified("Two"), sourceApp: nil, now: .now)
+        #expect(try store.allItems().count == 2)
+
+        try store.clearUnpinned()
+
+        #expect(try store.allItems().isEmpty)
+    }
+
+    @Test("clearUnpinned is a no-op when history is already empty")
+    func clearUnpinnedNoOpWhenEmpty() throws {
+        let store = try makeStore()
+        try store.clearUnpinned()
+        #expect(try store.allItems().isEmpty)
+        try store.clearUnpinned()
+        #expect(try store.allItems().isEmpty)
+    }
+
+    @Test("pinned items kept by clearUnpinned survive reopening the store")
+    func clearUnpinnedPinnedItemsSurviveReopen() throws {
+        let root = try makeTempRoot()
+        let storeURL = root.appendingPathComponent("history.store")
+        let attachmentRoot = root.appendingPathComponent("attachments", isDirectory: true)
+        let pinTime = Date(timeIntervalSinceReferenceDate: 5_000)
+        var pinnedBefore: [ItemSnapshot] = []
+
+        do {
+            let store = try ClipboardStore(
+                storeURL: storeURL,
+                attachmentStore: try AttachmentStore(rootURL: attachmentRoot)
+            )
+            try store.insert(makeTextClassified("Keep 1"), sourceApp: nil, now: Date(timeIntervalSinceReferenceDate: 1_000))
+            try store.insert(makeTextClassified("Drop"), sourceApp: nil, now: Date(timeIntervalSinceReferenceDate: 1_100))
+            try store.insert(makeTextClassified("Keep 2"), sourceApp: nil, now: Date(timeIntervalSinceReferenceDate: 1_200))
+            for item in try store.allItems() where item.text?.hasPrefix("Keep") == true {
+                try store.setPinned(item, pinned: true, now: pinTime)
+            }
+            try store.clearUnpinned()
+            pinnedBefore = try store.allItems().map(ItemSnapshot.init)
+        }
+        #expect(pinnedBefore.count == 2)
+
+        let reopened = try ClipboardStore(
+            storeURL: storeURL,
+            attachmentStore: try AttachmentStore(rootURL: attachmentRoot)
+        )
+        let after = try reopened.allItems()
+        #expect(after.map(ItemSnapshot.init) == pinnedBefore)
+        #expect(after.map(\.text) == ["Keep 2", "Keep 1"])
+    }
+
+    @Test("pinned items kept by clearUnpinned still match filters and search")
+    func clearUnpinnedPinnedItemsMatchFiltersAndSearch() throws {
+        let store = try makeStore()
+        try store.insert(makeTextClassified("Pinned needle"), sourceApp: nil, now: .now)
+        try store.insert(makeTextClassified("Unpinned needle"), sourceApp: nil, now: .now)
+        let pinned = try #require(try store.allItems().first(where: { $0.text == "Pinned needle" }))
+        try store.setPinned(pinned, pinned: true)
+
+        try store.clearUnpinned()
+
+        let items = try store.allItems()
+        #expect(items.count == 1)
+        #expect(items.filter { HistoryFilter.all.matches($0) }.map(\.id) == [pinned.id])
+        #expect(items.filter { HistoryFilter.pinned.matches($0) }.map(\.id) == [pinned.id])
+        #expect(items.filter { HistoryFilter.text.matches($0) }.map(\.id) == [pinned.id])
+        #expect(items.filter { $0.searchableText.contains("needle") }.map(\.id) == [pinned.id])
+    }
+
+    @Test("explicit delete still removes a pinned item")
+    func deleteRemovesPinnedItem() throws {
+        let store = try makeStore()
+        try store.insert(makeTextClassified("Pinned"), sourceApp: nil, now: .now)
+        let item = try #require(try store.allItems().first)
+        try store.setPinned(item, pinned: true)
+
+        try store.delete(item)
+
         #expect(try store.allItems().isEmpty)
     }
 
@@ -536,6 +672,37 @@ struct ClipboardStoreTests {
             contentHash: ContentHasher.sha256Hex(normalized),
             detectedKinds: []
         )
+    }
+}
+
+private struct ItemSnapshot: Equatable {
+    let id: UUID
+    let createdAt: Date
+    let pinnedAt: Date?
+    let kind: ItemKind
+    let contentHash: String
+    let groupKey: String
+    let text: String?
+    let imagePath: String?
+    let previewText: String
+    let searchableText: String
+    let sourceBundleIdentifier: String?
+    let sourceAppName: String?
+
+    @MainActor
+    init(_ item: ClipboardItem) {
+        id = item.id
+        createdAt = item.createdAt
+        pinnedAt = item.pinnedAt
+        kind = item.kind
+        contentHash = item.contentHash
+        groupKey = item.groupKey
+        text = item.text
+        imagePath = item.imagePath
+        previewText = item.previewText
+        searchableText = item.searchableText
+        sourceBundleIdentifier = item.sourceBundleIdentifier
+        sourceAppName = item.sourceAppName
     }
 }
 

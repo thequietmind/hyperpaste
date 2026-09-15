@@ -9,9 +9,14 @@ final class ClipboardStore {
 
     init(
         inMemory: Bool = false,
+        storeURL: URL? = nil,
         attachmentStore: AttachmentStore? = nil
     ) throws {
-        let config = ModelConfiguration(isStoredInMemoryOnly: inMemory)
+        let config = if let storeURL {
+            ModelConfiguration(url: storeURL)
+        } else {
+            ModelConfiguration(isStoredInMemoryOnly: inMemory)
+        }
         self.container = try ModelContainer(
             for: ClipboardItem.self,
             configurations: config
@@ -89,16 +94,11 @@ final class ClipboardStore {
         try delete(unavailableItems)
     }
 
-    func clearAll() throws {
-        let context = container.mainContext
-        let items = try context.fetch(FetchDescriptor<ClipboardItem>())
-        for item in items {
-            if let imagePath = item.imagePath {
-                attachmentStore.delete(relativePath: imagePath)
-            }
-            context.delete(item)
-        }
-        try context.save()
+    func clearUnpinned() throws {
+        let descriptor = FetchDescriptor<ClipboardItem>(
+            predicate: #Predicate { item in item.pinnedAt == nil }
+        )
+        try delete(container.mainContext.fetch(descriptor))
     }
 
     func delete(_ item: ClipboardItem) throws {

@@ -222,7 +222,7 @@ final class HistoryPanelController: NSObject {
     func requestClearHistory() {
         let alert = NSAlert()
         alert.messageText = String(localized: "Clear history?")
-        alert.informativeText = String(localized: "This will remove all clipboard history.")
+        alert.informativeText = String(localized: "This will remove all unpinned clipboard items. Pinned items will be kept.")
         let clearButton = alert.addButton(withTitle: String(localized: "Clear"))
         clearButton.hasDestructiveAction = true
         alert.addButton(withTitle: String(localized: "Cancel"))
@@ -230,7 +230,7 @@ final class HistoryPanelController: NSObject {
         if let panel, panel.isVisible {
             alert.beginSheetModal(for: panel) { [weak self] response in
                 guard response == .alertFirstButtonReturn else { return }
-                try? self?.store.clearAll()
+                try? self?.store.clearUnpinned()
             }
             return
         }
@@ -238,7 +238,7 @@ final class HistoryPanelController: NSObject {
         NSApp.activate(ignoringOtherApps: true)
         let response = alert.runModal()
         guard response == .alertFirstButtonReturn else { return }
-        try? store.clearAll()
+        try? store.clearUnpinned()
     }
 
     private func togglePinned(for item: ClipboardItem) {
