@@ -3,11 +3,9 @@
 CLAUDE.md
 AGENTS.md
 /docs/
-
-**/.claude/settings.local.json
-
-/.workspace-state/
 /specs/
+/.workspace-state/
+**/.claude/settings.local.json
 
 .DS_Store
 .DS_Store?
