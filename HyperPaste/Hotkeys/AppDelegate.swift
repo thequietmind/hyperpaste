@@ -26,10 +26,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.showHistory()
             }
         }
+        KeyboardShortcuts.onKeyDown(for: .showPinnedHistory) { [weak self] in
+            Task { @MainActor [weak self] in
+                self?.showHistory(filter: .pinned)
+            }
+        }
     }
 
-    func showHistory() {
-        panelController?.show()
+    func showHistory(filter: HistoryFilter = .all) {
+        panelController?.show(filter: filter)
     }
 
     func requestClearHistory() {

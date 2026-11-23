@@ -14,7 +14,7 @@ struct HistoryView: View {
     private var items: [ClipboardItem]
 
     @State private var searchText = ""
-    @State private var selectedFilter: HistoryFilter = .all
+    @State private var selectedFilter: HistoryFilter
     @State private var selectedIndex: Int = 0
     @State private var selectedItemIDs: Set<UUID> = []
     @State private var selectionAnchorIndex: Int?
@@ -25,6 +25,24 @@ struct HistoryView: View {
     private static let mouseActivationCommitDelay: Duration = .milliseconds(300)
 
     private let pasteCoordinator = PasteCoordinator()
+
+    init(
+        attachmentStore: AttachmentStore,
+        initialFilter: HistoryFilter = .all,
+        onDismiss: @escaping () -> Void,
+        onCommit: @escaping () -> Void,
+        onRequestDeleteItem: @escaping (ClipboardItem) -> Void,
+        onRequestDeleteItems: @escaping ([ClipboardItem]) -> Void,
+        onRequestTogglePin: @escaping (ClipboardItem) -> Void
+    ) {
+        self.attachmentStore = attachmentStore
+        self.onDismiss = onDismiss
+        self.onCommit = onCommit
+        self.onRequestDeleteItem = onRequestDeleteItem
+        self.onRequestDeleteItems = onRequestDeleteItems
+        self.onRequestTogglePin = onRequestTogglePin
+        _selectedFilter = State(initialValue: initialFilter)
+    }
 
     private var filteredItems: [ClipboardItem] {
         let categoryFiltered = items.filter { selectedFilter.matches($0) }
