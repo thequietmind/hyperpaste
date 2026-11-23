@@ -36,7 +36,7 @@ final class HistoryPanelController: NSObject {
         }
     }
 
-    func show() {
+    func show(filter: HistoryFilter = .all) {
         try? store.pruneUnavailableFileItems()
         let panel = self.panel ?? makePanel()
         self.panel = panel
@@ -45,6 +45,7 @@ final class HistoryPanelController: NSObject {
         let host = HistoryHostingController(
             rootView: HistoryView(
                 attachmentStore: store.attachmentStore,
+                initialFilter: filter,
                 onDismiss: { [weak self] in self?.dismiss() },
                 onCommit: { [weak self] in self?.commitAndDismiss() },
                 onRequestDeleteItem: { [weak self] item in

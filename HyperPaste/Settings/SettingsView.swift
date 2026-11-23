@@ -9,7 +9,7 @@ struct SettingsView: View {
                 GeneralSettingsView()
             }
         }
-        .frame(width: 480, height: 260)
+        .frame(width: 480, height: 310)
         .background(SettingsWindowConfigurator())
     }
 }
@@ -61,7 +61,14 @@ private struct GeneralSettingsView: View {
             }
 
             LabeledContent("Activation Shortcut") {
-                KeyboardShortcuts.Recorder(for: .toggleHistory)
+                shortcutRecorder(for: .toggleHistory)
+            }
+
+            LabeledContent {
+                shortcutRecorder(for: .showPinnedHistory)
+            } label: {
+                Text("Pinned Items Shortcut")
+                Text("Opens HyperPaste with the Pinned tab selected.")
             }
 
             LabeledContent("Paste") {
@@ -75,6 +82,20 @@ private struct GeneralSettingsView: View {
                 refreshStatus()
             }
         }
+    }
+
+    private func shortcutRecorder(for name: KeyboardShortcuts.Name) -> some View {
+        KeyboardShortcuts.Recorder(for: name)
+            .shortcutValidation { shortcut in
+                guard let conflict = name.conflict(with: shortcut) else { return .allow }
+                return .disallow(reason: Self.conflictReason(for: conflict))
+            }
+    }
+
+    private static func conflictReason(for name: KeyboardShortcuts.Name) -> String {
+        name == .showPinnedHistory
+            ? String(localized: "This shortcut is already used by the Pinned Items Shortcut.")
+            : String(localized: "This shortcut is already used by the Activation Shortcut.")
     }
 
     @ViewBuilder
